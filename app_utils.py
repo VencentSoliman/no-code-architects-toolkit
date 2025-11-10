@@ -30,11 +30,17 @@ def validate_payload(schema):
         def decorated_function(*args, **kwargs):
             if not request.json:
                 return jsonify({"message": "Missing JSON in request"}), 400
+
+            # Create a copy of the request data and remove internal _cloud_job_id field
+            # to prevent validation errors while preserving it for cloud job processing
+            validation_data = request.json.copy()
+            validation_data.pop('_cloud_job_id', None)
+
             try:
-                jsonschema.validate(instance=request.json, schema=schema)
+                jsonschema.validate(instance=validation_data, schema=schema)
             except jsonschema.exceptions.ValidationError as validation_error:
                 return jsonify({"message": f"Invalid payload: {validation_error.message}"}), 400
-            
+
             return f(*args, **kwargs)
         return decorated_function
     return decorator
